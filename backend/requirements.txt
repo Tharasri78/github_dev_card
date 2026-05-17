@@ -1,0 +1,6 @@
+google-adk
+fastmcp
+fastapi
+uvicorn
+requests
+pydantic
