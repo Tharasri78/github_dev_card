@@ -36,10 +36,20 @@ class GenerateRequest(BaseModel):
 
 @app.post("/generate")
 async def generate_card(request: GenerateRequest):
-    try:
-        session = session_service.get_or_create_session(request.username)
+    import re
+    username = request.username.strip().replace("@", "")
+    
+    # GitHub username validation
+    if not re.match(r"^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$", username):
+        raise HTTPException(
+            status_code=400, 
+            detail="Please enter only a valid GitHub username (alphanumeric and single hyphens only)."
+        )
         
-        message = f"Generate a dev card for {request.username}"
+    try:
+        session = session_service.get_or_create_session(username)
+        
+        message = f"Generate a dev card for {username}"
         
         # Depending on ADK API, runner.run might return an iterable of events or an async generator
         # The prompt says "Streams the agent events and returns the final card URL and HTML"
@@ -55,11 +65,11 @@ async def generate_card(request: GenerateRequest):
         
         # For the sake of the exercise, let's assume it returns a final response with text
         # If the generated HTML is in the static folder, we can read it directly.
-        card_path = os.path.join(os.path.dirname(__file__), "static", "cards", f"{request.username}.html")
+        card_path = os.path.join(os.path.dirname(__file__), "static", "cards", f"{username}.html")
         if os.path.exists(card_path):
             with open(card_path, "r", encoding="utf-8") as f:
                 html = f.read()
-            card_url = f"/card/{request.username}.html"
+            card_url = f"/card/{username}.html"
             
         return {
             "message": "Card generated successfully.",

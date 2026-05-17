@@ -188,8 +188,8 @@
     }
 
     async function generateCard() {
-        const usernameInput = document.getElementById('username').value.trim().replace('@', '');
-        if (!usernameInput) return;
+        let rawInput = document.getElementById('username').value.trim();
+        if (!rawInput) return;
         
         const errorEl = document.getElementById('error');
         const loadingEl = document.getElementById('loading');
@@ -199,6 +199,37 @@
         
         // Reset state
         errorEl.style.display = 'none';
+        
+        // Auto-extract username from a GitHub URL if they paste one
+        if (rawInput.includes('github.com')) {
+            try {
+                const parts = rawInput.split('github.com/');
+                if (parts.length > 1) {
+                    rawInput = parts[1].split('/')[0].split('?')[0].split('#')[0];
+                }
+            } catch (e) {
+                // ignore
+            }
+        } else if (rawInput.includes('http://') || rawInput.includes('https://')) {
+            try {
+                const urlObj = new URL(rawInput);
+                const pathname = urlObj.pathname.replace(/^\/|\/$/g, '');
+                rawInput = pathname.split('/')[0];
+            } catch (e) {
+                // ignore
+            }
+        }
+        
+        const usernameInput = rawInput.replace('@', '');
+        
+        // Validate the username character format (alphanumeric and hyphens only)
+        const usernameRegex = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
+        if (!usernameRegex.test(usernameInput)) {
+            errorEl.innerText = "Please enter only a valid GitHub username (letters, numbers, and single hyphens).";
+            errorEl.style.display = 'block';
+            return;
+        }
+        
         resultEl.classList.remove('visible');
         setTimeout(() => resultEl.style.display = 'none', 300);
         loadingEl.style.display = 'block';
