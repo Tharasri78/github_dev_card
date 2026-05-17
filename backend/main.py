@@ -110,6 +110,14 @@ cards_dir = os.path.join(os.path.dirname(__file__), "static", "cards")
 os.makedirs(cards_dir, exist_ok=True)
 app.mount("/card", StaticFiles(directory=cards_dir), name="cards")
 
+# Serve the frontend static files at root
+frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
+if not os.path.exists(frontend_dir):
+    frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+
+if os.path.exists(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)

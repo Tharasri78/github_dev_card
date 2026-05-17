@@ -1,11 +1,8 @@
 FROM python:3.12-slim
 
-RUN pip install uv
-
 WORKDIR /app
-
 COPY requirements.txt .
-RUN uv pip install --system -r requirements.txt
+RUN pip install -r requirements.txt
 
 COPY . .
 
