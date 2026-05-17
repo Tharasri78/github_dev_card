@@ -76,6 +76,13 @@ def analyze_profile(github_data: dict) -> dict:
     - "top_skills": A list of their top 3 skills or languages.
     - "fun_fact": Something clever inferred from their repos or bio.
     - "card_theme": Choose exactly one of: "hacker", "builder", "researcher", "designer", "open-source-hero".
+      * "researcher": If they focus on data science, analytics, machine learning, Python, Jupyter Notebooks, or research.
+      * "hacker": If they focus on cybersecurity, low-level programming, Linux, C/C++, system tools, or scripting.
+      * "builder": If they focus on web development, full-stack, frontend, backend, building apps (JavaScript, React, HTML, CSS, TypeScript, Go).
+      * "designer": If they focus on UI/UX, CSS art, creative coding, front-end aesthetics.
+      * "open-source-hero": If they have highly starred repositories or contribute massively to open source.
+      
+    Select the theme that best matches the developer's repositories and skills. For data-heavy, analytical, or notebook-based work, choose "researcher".
     """
     
     response = client.models.generate_content(
@@ -97,7 +104,7 @@ def analyze_profile(github_data: dict) -> dict:
             "developer_vibe": "A mysterious developer.", 
             "top_skills": ["Code"], 
             "fun_fact": "Too complex to understand.", 
-            "card_theme": "hacker"
+            "card_theme": "researcher"
         }
 
 @mcp.tool()
@@ -108,64 +115,125 @@ def generate_card_html(username: str, github_data: dict, analysis: dict) -> str:
         
     theme = analysis.get("card_theme", "hacker")
     
+    # Beautiful premium themes matching the layout in Image 2
     theme_styles = {
-        "hacker": {"bg": "#000000", "text": "#00ff00", "accent": "#003300", "font": "monospace"},
-        "builder": {"bg": "#ffffff", "text": "#333333", "accent": "#e0e0e0", "font": "sans-serif"},
-        "researcher": {"bg": "#f4f1ea", "text": "#2b2b2b", "accent": "#d1c7b7", "font": "serif"},
-        "designer": {"bg": "#ff9a9e", "text": "#ffffff", "accent": "#fecfef", "font": "sans-serif"},
-        "open-source-hero": {"bg": "#24292e", "text": "#ffffff", "accent": "#2ea043", "font": "sans-serif"}
+        "researcher": {
+            "bg": "#131927",
+            "text": "#cbd5e1",
+            "accent": "#0f1422",
+            "border": "#5d5fef",
+            "pill_bg": "#222d44",
+            "pill_text": "#cbd5e1",
+            "badge_bg": "#5d5fef",
+            "badge_text": "#ffffff",
+            "font": "'Inter', -apple-system, sans-serif"
+        },
+        "hacker": {
+            "bg": "#050505",
+            "text": "#39ff14",
+            "accent": "#0a0f0a",
+            "border": "#39ff14",
+            "pill_bg": "#142214",
+            "pill_text": "#39ff14",
+            "badge_bg": "#39ff14",
+            "badge_text": "#050505",
+            "font": "'Courier New', Courier, monospace"
+        },
+        "builder": {
+            "bg": "#0c0a09",
+            "text": "#e7e5e4",
+            "accent": "#1c1917",
+            "border": "#ea580c",
+            "pill_bg": "#292524",
+            "pill_text": "#fafaf9",
+            "badge_bg": "#ea580c",
+            "badge_text": "#ffffff",
+            "font": "'Inter', -apple-system, sans-serif"
+        },
+        "designer": {
+            "bg": "#170f1d",
+            "text": "#f472b6",
+            "accent": "#0e0912",
+            "border": "#ec4899",
+            "pill_bg": "#2e183b",
+            "pill_text": "#fdf2f8",
+            "badge_bg": "#ec4899",
+            "badge_text": "#ffffff",
+            "font": "'Inter', -apple-system, sans-serif"
+        },
+        "open-source-hero": {
+            "bg": "#0b0f19",
+            "text": "#fbbf24",
+            "accent": "#060910",
+            "border": "#fbbf24",
+            "pill_bg": "#1e293b",
+            "pill_text": "#fef3c7",
+            "badge_bg": "#fbbf24",
+            "badge_text": "#0b0f19",
+            "font": "'Inter', -apple-system, sans-serif"
+        }
     }
     
-    styles = theme_styles.get(theme, theme_styles["hacker"])
+    styles = theme_styles.get(theme, theme_styles["researcher"])
     
     repos_html = ""
     for repo in github_data.get("top_repos", [])[:3]:
+        lang = repo.get('language') or 'None'
         repos_html += f'''
-        <div style="background: {styles['accent']}; padding: 10px; margin-top: 10px; border-radius: 5px;">
-            <strong style="color: {styles['text']};">{repo.get('name')}</strong>
-            <span style="font-size: 0.8em; float: right;">⭐ {repo.get('stars')} | {repo.get('language') or 'N/A'}</span>
-            <p style="font-size: 0.9em; margin: 5px 0 0 0; color: {styles['text']}; opacity: 0.8;">{repo.get('description') or 'No description'}</p>
+        <div style="font-size: 0.95em; color: {styles['text']}; margin-bottom: 8px; text-align: left;">
+            <strong style="color: #ffffff; font-weight: 600;">{repo.get('name')}</strong>: {lang} (⭐ {repo.get('stars')})
         </div>
         '''
         
-    skills_html = "".join([f"<span style='background: {styles['accent']}; padding: 3px 8px; border-radius: 12px; margin-right: 5px; font-size: 0.8em;'>{s}</span>" for s in analysis.get("top_skills", [])])
+    skills_html = "".join([f"<span style='background: {styles['pill_bg']}; color: {styles['pill_text']}; padding: 6px 12px; border-radius: 6px; font-size: 0.85em; font-weight: 500; margin-right: 8px;'>{s}</span>" for s in analysis.get("top_skills", [])])
     
+    # Enclose vibe in double quotes if it doesn't already have them
+    vibe = analysis.get('developer_vibe', '')
+    if vibe and not (vibe.startswith('"') and vibe.endswith('"')):
+        vibe = f'"{vibe}"'
+        
     html = f'''
-    <div style="background-color: {styles['bg']}; color: {styles['text']}; font-family: {styles['font']}; padding: 30px; border-radius: 15px; width: 100%; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-        <div style="display: flex; align-items: center; margin-bottom: 20px;">
-            <img src="{github_data.get('avatar_url')}" alt="{username}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid {styles['accent']}; margin-right: 20px;">
+    <div style="background-color: {styles['bg']}; color: {styles['text']}; font-family: {styles['font']}; padding: 30px; border-radius: 16px; width: 100%; box-sizing: border-box; border: 2px solid {styles['border']}; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: left;">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+            <img src="{github_data.get('avatar_url')}" alt="{username}" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover;">
             <div>
-                <h2 style="margin: 0;">{github_data.get('name')}</h2>
-                <div style="font-size: 0.9em; opacity: 0.8;">@{username}</div>
+                <h2 style="margin: 0; font-size: 1.4em; font-weight: bold; color: #ffffff;">{github_data.get('name')}</h2>
+                <div style="font-size: 0.95em; color: #94a3b8; margin-top: 2px;">@{username}</div>
             </div>
         </div>
         
-        <p style="font-style: italic; margin-bottom: 15px;">"{analysis.get('developer_vibe')}"</p>
+        <p style="font-style: italic; font-size: 1.05em; color: #cbd5e1; line-height: 1.4; margin: 0 0 20px 0;">{vibe}</p>
         
-        <div style="margin-bottom: 20px;">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;">
             {skills_html}
         </div>
         
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px; text-align: center; background: {styles['accent']}; padding: 10px; border-radius: 8px;">
+        <div style="background-color: {styles['accent']}; display: flex; justify-content: space-around; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #1e293b;">
             <div>
-                <div style="font-weight: bold; font-size: 1.2em;">{github_data.get('public_repos')}</div>
-                <div style="font-size: 0.8em;">Repos</div>
+                <div style="font-size: 1.25em; font-weight: bold; color: #ffffff;">{github_data.get('public_repos')}</div>
+                <div style="font-size: 0.85em; color: #94a3b8; margin-top: 2px;">Repos</div>
             </div>
+            <div style="border-left: 1px solid #334155; height: 35px; align-self: center;"></div>
             <div>
-                <div style="font-weight: bold; font-size: 1.2em;">{github_data.get('followers')}</div>
-                <div style="font-size: 0.8em;">Followers</div>
-            </div>
-            <div>
-                <div style="font-weight: bold; font-size: 1.2em; text-transform: uppercase;">{theme}</div>
-                <div style="font-size: 0.8em;">Theme</div>
+                <div style="font-size: 1.25em; font-weight: bold; color: #ffffff;">{github_data.get('followers')}</div>
+                <div style="font-size: 0.85em; color: #94a3b8; margin-top: 2px;">Followers</div>
             </div>
         </div>
         
-        <h3 style="margin: 0 0 10px 0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px;">Top Projects</h3>
-        {repos_html}
+        <h3 style="margin: 0 0 12px 0; font-size: 0.85em; font-weight: bold; letter-spacing: 1px; color: #94a3b8; text-transform: uppercase;">Top Projects</h3>
+        <div style="margin-bottom: 20px;">
+            {repos_html}
+        </div>
         
-        <div style="margin-top: 20px; font-size: 0.8em; opacity: 0.7; text-align: center;">
-            Fun fact: {analysis.get('fun_fact')}
+        <hr style="border: 0; border-top: 1px solid #334155; margin: 15px 0;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <div style="font-size: 0.85em; color: #94a3b8; line-height: 1.4; margin: 0; max-width: 75%;">
+                {analysis.get('fun_fact')}
+            </div>
+            <span style="background-color: {styles['badge_bg']}; color: {styles['badge_text']}; padding: 4px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">
+                {theme}
+            </span>
         </div>
     </div>
     '''
