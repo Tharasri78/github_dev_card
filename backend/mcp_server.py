@@ -58,11 +58,46 @@ def analyze_profile(github_data: dict) -> dict:
         return github_data
         
     if not os.getenv("GEMINI_API_KEY"):
+        # Dynamically build a custom, personalized response based on the actual github_data
+        name = github_data.get("name") or "A passionate developer"
+        languages = list(github_data.get("most_used_languages", {}).keys())
+        top_skills = languages[:3] if languages else ["Python", "JavaScript", "HTML"]
+        while len(top_skills) < 3:
+            for skill in ["Python", "JavaScript", "HTML"]:
+                if skill not in top_skills and len(top_skills) < 3:
+                    top_skills.append(skill)
+                    
+        # Determine theme dynamically based on languages
+        card_theme = "builder"
+        lang_set = {l.lower() for l in languages}
+        if any(l in lang_set for l in ["jupyter notebook", "r", "julia"]):
+            card_theme = "researcher"
+        elif any(l in lang_set for l in ["c++", "c", "assembly", "shell", "rust"]):
+            card_theme = "hacker"
+        elif any(l in lang_set for l in ["css", "html", "typescript", "javascript"]):
+            card_theme = "builder"
+            if "css" in lang_set and len(lang_set) <= 2:
+                card_theme = "designer"
+                
+        # Personalize developer vibe
+        if github_data.get("bio"):
+            vibe = f"{name} is a developer who describes themselves as: \"{github_data.get('bio')}\""
+        else:
+            vibe = f"{name} is a detail-oriented developer specializing in {', '.join(top_skills[:2])}."
+            
+        # Personalize fun fact
+        fun_fact = f"Tends to focus heavily on {top_skills[0]} repositories with {github_data.get('public_repos', 0)} total public projects."
+        top_repos = github_data.get("top_repos", [])
+        if top_repos:
+            repo_name = top_repos[0].get("name", "")
+            repo_lang = top_repos[0].get("language", top_skills[0]) or top_skills[0]
+            fun_fact = f"Active creator of repositories like '{repo_name}', showcasing excellent work in {repo_lang}."
+            
         return {
-            "developer_vibe": "Harshvardhan Singh appears to be a detail-oriented and organized individual with a strong focus on data science and analytics.",
-            "top_skills": ["Jupyter Notebook", "Python", "CSS"],
-            "fun_fact": "It seems Harshvardhan Singh has a strong interest in data science education, judging by the presence of 'Data-Science-Notes' and 'Data-Analytics-Libraries' repositories.",
-            "card_theme": "researcher"
+            "developer_vibe": vibe,
+            "top_skills": top_skills,
+            "fun_fact": fun_fact,
+            "card_theme": card_theme
         }
         
     client = Client() # Uses GEMINI_API_KEY from env

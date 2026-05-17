@@ -1,4 +1,15 @@
 import os
+
+# Try to load .env file manually if it exists in any of these common paths
+for env_path in [".env", "../.env", "backend/.env", "../backend/.env"]:
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    os.environ[key.strip()] = val.strip().strip('"').strip("'")
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -69,6 +80,15 @@ async def generate_card(request: GenerateRequest):
         if os.path.exists(card_path):
             with open(card_path, "r", encoding="utf-8") as f:
                 html = f.read()
+            
+            # If the generated HTML contains an error message, treat it as a 404
+            if "class='error'" in html or "Error generating card" in html:
+                try:
+                    os.remove(card_path)
+                except:
+                    pass
+                raise HTTPException(status_code=404, detail="GitHub user not found. Please check the spelling and try again.")
+                
             card_url = f"/card/{username}.html"
             
         return {
@@ -77,6 +97,8 @@ async def generate_card(request: GenerateRequest):
             "html": html,
             "agent_response": response.text if hasattr(response, "text") else str(response)
         }
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
